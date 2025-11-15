@@ -55,13 +55,13 @@ const Contact = () => {
                 icon: Mail,
                 title: "Email",
                 content: "liminoxcc@gmail.com",
-                href: "mailto:contact@liminox.com",
+                href: "liminoxcc@gmail.com",
               },
               {
                 icon: Phone,
                 title: "Phone",
                 content: "+919220786079",
-                href: "tel:+15551234567",
+                href: "+919220786079",
               },
               {
                 icon: MapPin,
