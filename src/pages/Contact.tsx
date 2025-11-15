@@ -54,19 +54,19 @@ const Contact = () => {
               {
                 icon: Mail,
                 title: "Email",
-                content: "contact@liminox.com",
+                content: "liminoxcc@gmail.com",
                 href: "mailto:contact@liminox.com",
               },
               {
                 icon: Phone,
                 title: "Phone",
-                content: "+1 (555) 123-4567",
+                content: "+919220786079",
                 href: "tel:+15551234567",
               },
               {
                 icon: MapPin,
                 title: "Office",
-                content: "123 Innovation Drive, Tech City, TC 12345",
+                content: "Liminox, Chetana College Bandra East- 400051",
                 href: "#",
               },
             ].map((item, index) => (
@@ -137,7 +137,7 @@ const Contact = () => {
                     id="phone"
                     name="phone"
                     type="tel"
-                    placeholder="+1 (555) 123-4567"
+                    placeholder="0000000000"
                     value={formData.phone}
                     onChange={handleChange}
                     className="border-input"
