@@ -17,7 +17,7 @@ const Navigation = () => {
           <Link to="/" className="flex items-center gap-2 group">
             <div className="bg-primary p-2 rounded-lg group-hover:scale-110 transition-transform">
               {/* <Droplet className="h-5 w-5 text-primary-foreground" /> */}
-              <img src="/LIMINOX LOGO.svg" alt="Liminox Logo" width={50} height={20} />
+              <img src="LIMINOX LOGO (1).svg" alt="Liminox Logo" width={50} height={20} />
             </div>
 
             <span className="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
