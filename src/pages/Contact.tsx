@@ -15,14 +15,48 @@ const Contact = () => {
     phone: "",
     message: "",
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: "Message Sent!",
-      description: "We'll get back to you as soon as possible.",
-    });
-    setFormData({ name: "", email: "", phone: "", message: "" });
+    setIsSubmitting(true);
+    
+    try {
+      const response = await fetch("https://formspree.io/f/xkgklzqw", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          message: formData.message,
+        }),
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Message Sent!",
+          description: "We'll get back to you as soon as possible.",
+        });
+        setFormData({ name: "", email: "", phone: "", message: "" });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to send message. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to send message. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleChange = (
@@ -59,13 +93,13 @@ const Contact = () => {
                 icon: Mail,
                 title: "Email",
                 content: "liminoxcc@gmail.com",
-                href: "mailto:liminoxcc@gmail.com", // FIXED
+                href: "mailto:liminoxcc@gmail.com",
               },
               {
                 icon: Phone,
                 title: "Phone",
                 content: "+919220786079",
-                href: "tel:+919220786079", // FIXED
+                href: "tel:+919220786079",
               },
               {
                 icon: MapPin,
@@ -92,8 +126,10 @@ const Contact = () => {
                           {item.content}
                         </p>
                       ) : (
-                        <a
+                        
                           href={item.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
                           className="text-sm text-primary hover:underline"
                         >
                           {item.content}
@@ -168,9 +204,10 @@ const Contact = () => {
                 <Button
                   type="submit"
                   size="lg"
+                  disabled={isSubmitting}
                   className="w-full bg-gradient-to-r from-primary to-secondary hover:opacity-90 transition-opacity"
                 >
-                  Send Message
+                  {isSubmitting ? "Sending..." : "Send Message"}
                 </Button>
               </form>
             </CardContent>
