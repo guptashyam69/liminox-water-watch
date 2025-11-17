@@ -59,13 +59,13 @@ const Contact = () => {
                 icon: Mail,
                 title: "Email",
                 content: "liminoxcc@gmail.com",
-                href: "mailto:liminoxcc@gmail.com", // FIXED
+                href: "mailto:liminoxcc@gmail.com",
               },
               {
                 icon: Phone,
                 title: "Phone",
                 content: "+919220786079",
-                href: "tel:+919220786079", // FIXED
+                href: "tel:+919220786079",
               },
               {
                 icon: MapPin,
@@ -92,8 +92,10 @@ const Contact = () => {
                           {item.content}
                         </p>
                       ) : (
-                        <a
+                        
                           href={item.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
                           className="text-sm text-primary hover:underline"
                         >
                           {item.content}
