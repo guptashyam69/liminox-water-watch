@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Menu, X, LogOut, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
-import liminoxLogo from "@/assets/liminox-logo.png";
 
 const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -38,7 +37,7 @@ const Navigation = () => {
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 group">
             <div className="bg-primary p-2 rounded-lg group-hover:scale-110 transition-transform">
-              <img src={liminoxLogo} alt="Liminox Logo" className="h-8 w-auto" />
+              <img src="/LIMINOXO.svg" alt="Liminox Logo" className="h-8 w-auto" />
             </div>
 
             <span className="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
