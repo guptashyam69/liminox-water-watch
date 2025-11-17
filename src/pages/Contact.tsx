@@ -40,10 +40,14 @@ const Contact = () => {
         {/* Header */}
         <div className="text-center mb-12 animate-in fade-in slide-in-from-bottom duration-700">
           <h1 className="text-5xl md:text-6xl font-bold mb-4">
-            Get In <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">Touch</span>
+            Get In{" "}
+            <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+              Touch
+            </span>
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Have questions? We'd love to hear from you. Send us a message and we'll respond as soon as possible.
+            Have questions? We'd love to hear from you. Send us a message and
+            we'll respond as soon as possible.
           </p>
         </div>
 
@@ -55,13 +59,13 @@ const Contact = () => {
                 icon: Mail,
                 title: "Email",
                 content: "liminoxcc@gmail.com",
-                href: "liminoxcc@gmail.com",
+                href: "mailto:liminoxcc@gmail.com", // FIXED
               },
               {
                 icon: Phone,
                 title: "Phone",
                 content: "+919220786079",
-                href: "+919220786079",
+                href: "tel:+919220786079", // FIXED
               },
               {
                 icon: MapPin,
@@ -82,8 +86,11 @@ const Contact = () => {
                     </div>
                     <div>
                       <h3 className="font-semibold mb-1">{item.title}</h3>
+
                       {item.href.startsWith("#") ? (
-                        <p className="text-sm text-muted-foreground">{item.content}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {item.content}
+                        </p>
                       ) : (
                         <a
                           href={item.href}
