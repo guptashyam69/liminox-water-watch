@@ -59,19 +59,19 @@ const Contact = () => {
                 icon: Mail,
                 title: "Email",
                 content: "liminoxcc@gmail.com",
-                href: "mailto:liminoxcc@gmail.com",
+                href: "mailto:liminoxcc@gmail.com", // FIXED
               },
               {
                 icon: Phone,
                 title: "Phone",
                 content: "+919220786079",
-                href: "tel:+919220786079",
+                href: "tel:+919220786079", // FIXED
               },
               {
                 icon: MapPin,
                 title: "Office",
                 content: "Liminox, Chetana College Bandra East- 400051",
-                href: "https://maps.app.goo.gl/p4CNHQ29m3WT28Xm7",
+                href: "#",
               },
             ].map((item, index) => (
               <Card
@@ -92,10 +92,8 @@ const Contact = () => {
                           {item.content}
                         </p>
                       ) : (
-                        
+                        <a
                           href={item.href}
-                          target="_blank"
-                          rel="noopener noreferrer"
                           className="text-sm text-primary hover:underline"
                         >
                           {item.content}
