@@ -71,7 +71,7 @@ const Contact = () => {
                 icon: MapPin,
                 title: "Office",
                 content: "Liminox, Chetana College Bandra East- 400051",
-                href: "#",
+                href: "https://maps.app.goo.gl/p4CNHQ29m3WT28Xm7",
               },
             ].map((item, index) => (
               <Card
