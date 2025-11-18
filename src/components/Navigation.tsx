@@ -36,7 +36,10 @@ const Navigation = () => {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 group">
-            
+            <div className="bg-primary p-2 rounded-lg group-hover:scale-110 transition-transform">
+              <img src="/logo.png" alt="Liminox Logo" className="h-8 w-auto" />
+            </div>
+
             <span className="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
               Liminox
             </span>
