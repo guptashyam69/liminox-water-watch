@@ -5,16 +5,32 @@ import { User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+
+interface Profile {
+  id: string;
+  user_id: string;
+  display_name: string | null;
+  avatar_url: string | null;
+  bio: string | null;
+  created_at: string;
+  updated_at: string;
+}
 
 const Dashboard = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [passwordLoading, setPasswordLoading] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [displayName, setDisplayName] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const [bio, setBio] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -26,6 +42,23 @@ const Dashboard = () => {
         return;
       }
       setUser(session.user);
+      
+      // Fetch profile data
+      const { data: profileData, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("user_id", session.user.id)
+        .maybeSingle();
+
+      if (error) {
+        console.error("Error fetching profile:", error);
+      } else if (profileData) {
+        setProfile(profileData);
+        setDisplayName(profileData.display_name || "");
+        setAvatarUrl(profileData.avatar_url || "");
+        setBio(profileData.bio || "");
+      }
+      
       setLoading(false);
     };
 
@@ -87,6 +120,38 @@ const Dashboard = () => {
     }
   };
 
+  const handleProfileUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!user) return;
+
+    setProfileLoading(true);
+
+    const { error } = await supabase
+      .from("profiles")
+      .upsert({
+        user_id: user.id,
+        display_name: displayName,
+        avatar_url: avatarUrl,
+        bio: bio,
+      });
+
+    setProfileLoading(false);
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Success",
+        description: "Profile updated successfully",
+      });
+    }
+  };
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     navigate("/");
@@ -118,27 +183,59 @@ const Dashboard = () => {
             <Card>
               <CardHeader>
                 <CardTitle>Profile Information</CardTitle>
-                <CardDescription>View your account details</CardDescription>
+                <CardDescription>Update your profile details</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Email</Label>
-                  <Input value={user?.email || ""} disabled />
-                </div>
-                <div className="space-y-2">
-                  <Label>User ID</Label>
-                  <Input value={user?.id || ""} disabled />
-                </div>
-                <div className="space-y-2">
-                  <Label>Account Created</Label>
-                  <Input
-                    value={user?.created_at ? new Date(user.created_at).toLocaleDateString() : ""}
-                    disabled
-                  />
-                </div>
-                <Button onClick={handleSignOut} variant="destructive" className="w-full">
-                  Sign Out
-                </Button>
+              <CardContent>
+                <form onSubmit={handleProfileUpdate} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input id="email" value={user?.email || ""} disabled />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="displayName">Display Name</Label>
+                    <Input
+                      id="displayName"
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
+                      placeholder="Your display name"
+                      disabled={profileLoading}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="avatarUrl">Avatar URL</Label>
+                    <Input
+                      id="avatarUrl"
+                      value={avatarUrl}
+                      onChange={(e) => setAvatarUrl(e.target.value)}
+                      placeholder="https://example.com/avatar.jpg"
+                      disabled={profileLoading}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="bio">Bio</Label>
+                    <Textarea
+                      id="bio"
+                      value={bio}
+                      onChange={(e) => setBio(e.target.value)}
+                      placeholder="Tell us about yourself"
+                      disabled={profileLoading}
+                      rows={4}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Account Created</Label>
+                    <Input
+                      value={user?.created_at ? new Date(user.created_at).toLocaleDateString() : ""}
+                      disabled
+                    />
+                  </div>
+                  <Button type="submit" className="w-full" disabled={profileLoading}>
+                    {profileLoading ? "Saving..." : "Save Changes"}
+                  </Button>
+                  <Button onClick={handleSignOut} variant="destructive" className="w-full" type="button">
+                    Sign Out
+                  </Button>
+                </form>
               </CardContent>
             </Card>
           </TabsContent>

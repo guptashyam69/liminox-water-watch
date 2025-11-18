@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -192,6 +192,11 @@ const Auth = () => {
                   >
                     {loading ? "Logging in..." : "Login"}
                   </Button>
+                  <div className="text-center">
+                    <Link to="/forgot-password" className="text-sm text-primary hover:underline">
+                      Forgot your password?
+                    </Link>
+                  </div>
                 </form>
               </TabsContent>
 

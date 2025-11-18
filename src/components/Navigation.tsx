@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Menu, X, LogOut, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
+import { ThemeToggle } from "./ThemeToggle";
 
 const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -85,6 +86,7 @@ const Navigation = () => {
                   <User className="h-4 w-4" />
                   <span className="hidden lg:inline">{user.email}</span>
                 </div>
+                <ThemeToggle />
                 <Button
                   onClick={handleLogout}
                   variant="outline"
@@ -96,11 +98,14 @@ const Navigation = () => {
                 </Button>
               </div>
             ) : (
-              <Link to="/auth">
-                <Button className="bg-gradient-to-r from-primary to-secondary hover:opacity-90 transition-opacity">
-                  Login
-                </Button>
-              </Link>
+              <>
+                <ThemeToggle />
+                <Link to="/auth">
+                  <Button className="bg-gradient-to-r from-primary to-secondary hover:opacity-90 transition-opacity">
+                    Login
+                  </Button>
+                </Link>
+              </>
             )}
           </div>
 
@@ -159,6 +164,9 @@ const Navigation = () => {
                     <User className="h-4 w-4" />
                     <span>{user.email}</span>
                   </div>
+                  <div className="px-4">
+                    <ThemeToggle />
+                  </div>
                   <Button
                     onClick={() => {
                       handleLogout();
@@ -172,11 +180,16 @@ const Navigation = () => {
                   </Button>
                 </>
               ) : (
-                <Link to="/auth" onClick={() => setIsMenuOpen(false)}>
-                  <Button className="w-full bg-gradient-to-r from-primary to-secondary hover:opacity-90 transition-opacity">
-                    Login
-                  </Button>
-                </Link>
+                <>
+                  <div className="px-4">
+                    <ThemeToggle />
+                  </div>
+                  <Link to="/auth" onClick={() => setIsMenuOpen(false)}>
+                    <Button className="w-full bg-gradient-to-r from-primary to-secondary hover:opacity-90 transition-opacity">
+                      Login
+                    </Button>
+                  </Link>
+                </>
               )}
             </div>
           </div>
