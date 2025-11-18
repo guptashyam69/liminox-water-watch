@@ -1,11 +1,33 @@
-import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Droplet } from "lucide-react";
+import { Menu, X, LogOut, User } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import type { User as SupabaseUser } from "@supabase/supabase-js";
+import { ThemeToggle } from "./ThemeToggle";
 
 const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [user, setUser] = useState<SupabaseUser | null>(null);
   const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate("/");
+  };
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -16,9 +38,10 @@ const Navigation = () => {
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 group">
             <div className="bg-primary p-2 rounded-lg group-hover:scale-110 transition-transform">
-              {/* <Droplet className="h-5 w-5 text-primary-foreground" /> */}
+              {/* <img src="/logo.png" alt="Liminox Logo" className="h-8 w-auto" /> */}
               <img src="/LIMINOX LOGO.svg" alt="Liminox Logo" width={50} height={20} />
             </div>
+
 
             <span className="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
               Liminox
@@ -51,11 +74,41 @@ const Navigation = () => {
             >
               Contact
             </Link>
-            <Link to="/auth">
-              <Button className="bg-gradient-to-r from-primary to-secondary hover:opacity-90 transition-opacity">
-                Login
-              </Button>
-            </Link>
+            {user ? (
+              <div className="flex items-center gap-4">
+                <Link
+                  to="/dashboard"
+                  className={`text-sm font-medium transition-colors hover:text-primary ${
+                    isActive("/dashboard") ? "text-primary" : "text-foreground/80"
+                  }`}
+                >
+                  Dashboard
+                </Link>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <User className="h-4 w-4" />
+                  <span className="hidden lg:inline">{user.email}</span>
+                </div>
+                <ThemeToggle />
+                <Button
+                  onClick={handleLogout}
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                >
+                  <LogOut className="h-4 w-4" />
+                  <span className="hidden sm:inline">Logout</span>
+                </Button>
+              </div>
+            ) : (
+              <>
+                <ThemeToggle />
+                <Link to="/auth">
+                  <Button className="bg-gradient-to-r from-primary to-secondary hover:opacity-90 transition-opacity">
+                    Login
+                  </Button>
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -98,11 +151,48 @@ const Navigation = () => {
               >
                 Contact
               </Link>
-              <Link to="/auth" onClick={() => setIsMenuOpen(false)}>
-                <Button className="w-full bg-gradient-to-r from-primary to-secondary hover:opacity-90 transition-opacity">
-                  Login
-                </Button>
-              </Link>
+              {user ? (
+                <>
+                  <Link
+                    to="/dashboard"
+                    className={`text-sm font-medium px-4 py-2 rounded-lg transition-colors ${
+                      isActive("/dashboard") ? "bg-accent text-primary" : "text-foreground/80 hover:bg-accent/50"
+                    }`}
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Dashboard
+                  </Link>
+                  <div className="flex items-center gap-2 px-4 py-2 text-sm text-muted-foreground">
+                    <User className="h-4 w-4" />
+                    <span>{user.email}</span>
+                  </div>
+                  <div className="px-4">
+                    <ThemeToggle />
+                  </div>
+                  <Button
+                    onClick={() => {
+                      handleLogout();
+                      setIsMenuOpen(false);
+                    }}
+                    variant="outline"
+                    className="w-full gap-2"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Logout
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <div className="px-4">
+                    <ThemeToggle />
+                  </div>
+                  <Link to="/auth" onClick={() => setIsMenuOpen(false)}>
+                    <Button className="w-full bg-gradient-to-r from-primary to-secondary hover:opacity-90 transition-opacity">
+                      Login
+                    </Button>
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         )}
