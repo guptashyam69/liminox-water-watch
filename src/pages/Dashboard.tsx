@@ -1,67 +1,38 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { Upload, FileText, Trash2, Presentation } from "lucide-react";
+import PDFViewer from "@/components/PDFViewer";
+import type { User } from "@supabase/supabase-js";
 
-interface Profile {
-  id: string;
-  user_id: string;
-  display_name: string | null;
-  avatar_url: string | null;
-  bio: string | null;
+interface PDFFile {
+  name: string;
+  url: string;
+  path: string;
   created_at: string;
-  updated_at: string;
 }
 
 const Dashboard = () => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [passwordLoading, setPasswordLoading] = useState(false);
-  const [profileLoading, setProfileLoading] = useState(false);
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [displayName, setDisplayName] = useState("");
-  const [avatarUrl, setAvatarUrl] = useState("");
-  const [bio, setBio] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [pdfs, setPdfs] = useState<PDFFile[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [selectedPdf, setSelectedPdf] = useState<PDFFile | null>(null);
 
   useEffect(() => {
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         navigate("/auth");
-        return;
+      } else {
+        setUser(session.user);
+        setLoading(false);
       }
-      setUser(session.user);
-      
-      // Fetch profile data
-      const { data: profileData, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("user_id", session.user.id)
-        .maybeSingle();
-
-      if (error) {
-        console.error("Error fetching profile:", error);
-      } else if (profileData) {
-        setProfile(profileData);
-        setDisplayName(profileData.display_name || "");
-        setAvatarUrl(profileData.avatar_url || "");
-        setBio(profileData.bio || "");
-      }
-      
-      setLoading(false);
     };
-
     checkUser();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -75,86 +46,136 @@ const Dashboard = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
-  const handlePasswordReset = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (newPassword !== confirmPassword) {
-      toast({
-        title: "Error",
-        description: "Passwords do not match",
-        variant: "destructive",
-      });
-      return;
+  useEffect(() => {
+    if (user) {
+      loadPDFs();
     }
+  }, [user]);
 
-    if (newPassword.length < 6) {
-      toast({
-        title: "Error",
-        description: "Password must be at least 6 characters",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setPasswordLoading(true);
-
-    const { error } = await supabase.auth.updateUser({
-      password: newPassword,
-    });
-
-    setPasswordLoading(false);
-
-    if (error) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    } else {
-      toast({
-        title: "Success",
-        description: "Password updated successfully",
-      });
-      setNewPassword("");
-      setConfirmPassword("");
-    }
-  };
-
-  const handleProfileUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  const loadPDFs = async () => {
     if (!user) return;
 
-    setProfileLoading(true);
+    try {
+      const { data, error } = await supabase.storage
+        .from("pdfs")
+        .list(`${user.id}/`, {
+          limit: 100,
+          offset: 0,
+          sortBy: { column: "created_at", order: "desc" },
+        });
 
-    const { error } = await supabase
-      .from("profiles")
-      .upsert({
-        user_id: user.id,
-        display_name: displayName,
-        avatar_url: avatarUrl,
-        bio: bio,
-      });
+      if (error) throw error;
 
-    setProfileLoading(false);
+      const pdfFiles = await Promise.all(
+        data.map(async (file) => {
+          const { data: urlData } = await supabase.storage
+            .from("pdfs")
+            .createSignedUrl(`${user.id}/${file.name}`, 3600);
 
-    if (error) {
+          return {
+            name: file.name,
+            url: urlData?.signedUrl || "",
+            path: `${user.id}/${file.name}`,
+            created_at: file.created_at,
+          };
+        })
+      );
+
+      setPdfs(pdfFiles);
+    } catch (error: any) {
       toast({
-        title: "Error",
+        title: "Error loading PDFs",
         description: error.message,
         variant: "destructive",
-      });
-    } else {
-      toast({
-        title: "Success",
-        description: "Profile updated successfully",
       });
     }
   };
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    navigate("/");
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    if (file.type !== "application/pdf") {
+      toast({
+        title: "Invalid file type",
+        description: "Please upload a PDF file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please upload a PDF smaller than 10MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${Date.now()}.${fileExt}`;
+      const filePath = `${user.id}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("pdfs")
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      toast({
+        title: "Success",
+        description: "PDF uploaded successfully",
+      });
+
+      loadPDFs();
+    } catch (error: any) {
+      toast({
+        title: "Upload failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+    }
+  };
+
+  const handleDeletePDF = async (path: string) => {
+    try {
+      const { error } = await supabase.storage.from("pdfs").remove([path]);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "PDF deleted successfully",
+      });
+
+      loadPDFs();
+    } catch (error: any) {
+      toast({
+        title: "Delete failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+      } else {
+        toast({ title: "Success", description: "Logged out successfully" });
+        navigate("/");
+      }
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message || "Unexpected error", variant: "destructive" });
+    }
   };
 
   if (loading) {
@@ -166,120 +187,103 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-muted-foreground mt-2">Manage your account settings</p>
+    <>
+      <div className="min-h-screen p-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex justify-between items-center mb-8">
+            <h1 className="text-4xl font-bold">Dashboard</h1>
+            <Button onClick={handleLogout} variant="outline">
+              Logout
+            </Button>
+          </div>
+
+          <div className="bg-card border border-border rounded-lg p-6 mb-6">
+            <h2 className="text-2xl font-semibold mb-4">Welcome!</h2>
+            <p className="text-muted-foreground mb-2">
+              You're logged in as: <span className="text-foreground font-medium">{user?.email}</span>
+            </p>
+            <p className="text-muted-foreground">
+              User ID: <span className="text-foreground font-mono text-sm">{user?.id}</span>
+            </p>
+          </div>
+
+          <div className="bg-card border border-border rounded-lg p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-semibold">My Presentations</h2>
+              <label htmlFor="pdf-upload">
+                <Button disabled={uploading} asChild>
+                  <span className="cursor-pointer">
+                    <Upload className="h-4 w-4 mr-2" />
+                    {uploading ? "Uploading..." : "Upload PDF"}
+                  </span>
+                </Button>
+                <input
+                  id="pdf-upload"
+                  type="file"
+                  accept="application/pdf"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+              </label>
+            </div>
+
+            {pdfs.length === 0 ? (
+              <div className="text-center py-12">
+                <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">No PDFs uploaded yet</p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Upload a PDF to start presenting
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {pdfs.map((pdf) => (
+                  <div
+                    key={pdf.path}
+                    className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <FileText className="h-5 w-5 text-primary flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">{pdf.name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {new Date(pdf.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() => setSelectedPdf(pdf)}
+                      >
+                        <Presentation className="h-4 w-4 mr-2" />
+                        Present
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => handleDeletePDF(pdf.path)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-
-        <Tabs defaultValue="profile" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="profile">Profile</TabsTrigger>
-            <TabsTrigger value="security">Security</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="profile">
-            <Card>
-              <CardHeader>
-                <CardTitle>Profile Information</CardTitle>
-                <CardDescription>Update your profile details</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleProfileUpdate} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input id="email" value={user?.email || ""} disabled />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="displayName">Display Name</Label>
-                    <Input
-                      id="displayName"
-                      value={displayName}
-                      onChange={(e) => setDisplayName(e.target.value)}
-                      placeholder="Your display name"
-                      disabled={profileLoading}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="avatarUrl">Avatar URL</Label>
-                    <Input
-                      id="avatarUrl"
-                      value={avatarUrl}
-                      onChange={(e) => setAvatarUrl(e.target.value)}
-                      placeholder="https://example.com/avatar.jpg"
-                      disabled={profileLoading}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="bio">Bio</Label>
-                    <Textarea
-                      id="bio"
-                      value={bio}
-                      onChange={(e) => setBio(e.target.value)}
-                      placeholder="Tell us about yourself"
-                      disabled={profileLoading}
-                      rows={4}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Account Created</Label>
-                    <Input
-                      value={user?.created_at ? new Date(user.created_at).toLocaleDateString() : ""}
-                      disabled
-                    />
-                  </div>
-                  <Button type="submit" className="w-full" disabled={profileLoading}>
-                    {profileLoading ? "Saving..." : "Save Changes"}
-                  </Button>
-                  <Button onClick={handleSignOut} variant="destructive" className="w-full" type="button">
-                    Sign Out
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="security">
-            <Card>
-              <CardHeader>
-                <CardTitle>Change Password</CardTitle>
-                <CardDescription>Update your account password</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handlePasswordReset} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="newPassword">New Password</Label>
-                    <Input
-                      id="newPassword"
-                      type="password"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      required
-                      disabled={passwordLoading}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="confirmPassword">Confirm Password</Label>
-                    <Input
-                      id="confirmPassword"
-                      type="password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      required
-                      disabled={passwordLoading}
-                    />
-                  </div>
-                  <Button type="submit" className="w-full" disabled={passwordLoading}>
-                    {passwordLoading ? "Updating..." : "Update Password"}
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
       </div>
-    </div>
+
+      {selectedPdf && (
+        <PDFViewer
+          isOpen={!!selectedPdf}
+          onClose={() => setSelectedPdf(null)}
+          pdfUrl={selectedPdf.url}
+          pdfName={selectedPdf.name}
+        />
+      )}
+    </>
   );
 };
 
